@@ -7,16 +7,12 @@ using UnityEngine.Serialization;
 public class Lane
 {
     public Edge ParentEdge;
-    public Junction FirstJunction;
-    public Junction LastJunction;
     public List<Vector2> Shape;
     public bool PedestrianRoad;
 
     public Lane(Edge edge, List<Vector2> shape, bool pedestrian)
     {
         ParentEdge = edge;
-        FirstJunction = edge.From;
-        LastJunction = edge.To;
         Shape = shape;
         PedestrianRoad = pedestrian;
     }
@@ -42,7 +38,7 @@ public class LaneManager : MonoBehaviour
     [SerializeField] private Transform Parent;
     
     private EdgeManager _edgeManager;
-    private readonly Queue<Lane> _lanesToPlace = new();
+    private Queue<Lane> _lanesToPlace = new();
 
     private void Awake()
     {
@@ -56,22 +52,11 @@ public class LaneManager : MonoBehaviour
         PlaceLane();
     }
 
-    public void ManageLanes(string data)
+    public void AddLanes(List<Lane> lanes)
     {
-        if (string.IsNullOrEmpty(data)) return;
-        
-        if (!_edgeManager) _edgeManager = GetComponent<EdgeManager>();
-        string[] splitData = data.Split('*');
-        
-        string vec2 = splitData[1];
-        List<Vector2> vectors = ParseVector2(vec2);
+        if (lanes.Count <= 0) return;
 
-        string id = splitData[0];
-        Edge edge = _edgeManager.GetEdge(id);
-
-        bool isPedestrian = splitData[2].Contains("pedestrian");
-        
-        _lanesToPlace.Enqueue(new Lane(edge, vectors, isPedestrian));
+        _lanesToPlace = new Queue<Lane>(lanes);
     }
     
     private List<Vector2> ParseVector2(string data)

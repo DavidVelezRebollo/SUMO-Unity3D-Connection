@@ -4,9 +4,9 @@ public class StopButton : MonoBehaviour
 {
     private TrafficSimulator _trafficSimulator;
 
-    private void Awake()
+    private void Start()
     {
-        _trafficSimulator = FindObjectOfType<TrafficSimulator>();
+        _trafficSimulator = TrafficSimulator.Instance;
     }
 
     public void OnButtonPress()

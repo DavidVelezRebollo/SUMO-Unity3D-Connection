@@ -1,14 +1,22 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
 using UnityEngine;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
+using CodingConnected.TraCI.NET;
+using CodingConnected.TraCI.NET.Types;
 
 public class TrafficSimulator : MonoBehaviour
 {
     [SerializeField] private int ConnectionPort;
+    [SerializeField] private int MaxStep = 1000;
+
+    public static TrafficSimulator Instance;
 
     private JunctionManager _junctionManager;
     private VehicleManager _vehicleManager;
@@ -21,18 +29,25 @@ public class TrafficSimulator : MonoBehaviour
     private HUD _hud;
     
     private Thread _thread;
-    private TcpListener _server;
-    private TcpClient _client;
-    private NetworkStream _nwStream;
+    
+    private Task _task;
+    private TraCIClient _traci;
 
     private int _step;
     private int _maxStep;
     private bool _simulationStep = true;
+    private bool _serverOn;
+
+    private const string _HOST = "127.0.0.1";
 
     public Action<int, int> OnStepChange;
 
     private void Awake()
     {
+        if (Instance) Destroy(gameObject);
+
+        Instance = this;
+        
         _junctionManager = GetComponent<JunctionManager>();
         _vehicleManager = GetComponent<VehicleManager>();
         _edgeManager = GetComponent<EdgeManager>();
@@ -44,142 +59,203 @@ public class TrafficSimulator : MonoBehaviour
         _hud = FindObjectOfType<HUD>();
     }
 
-    public void StartThread()
+    public IEnumerator StartThread(string sumoGui, string sumoCfgPath)
     {
+        _traci = new TraCIClient();
+        Process sumoProcess = CreateSumoServer(sumoGui, sumoCfgPath, ConnectionPort);
+        if (sumoProcess == null) yield break;
+        
+        _task = _traci.ConnectAsync(_HOST, ConnectionPort);
+        yield return new WaitWhile(() => !_task.IsCompleted);
+
         ThreadStart ts = GetData;
         _thread = new Thread(ts);
         _thread.Start();
     }
+
+    private static Process CreateSumoServer(string sumoGui, string sumoCfg, int port)
+    {
+        Process sumoProcess;
+        
+        try
+        {
+            string args = $" -c {sumoCfg} --remote-port {port} --start";
+            sumoProcess = new Process()
+            {
+                StartInfo = new ProcessStartInfo()
+                {
+                    Arguments = args,
+                    FileName = sumoGui,
+
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                    ErrorDialog = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                },
+                EnableRaisingEvents = true
+            };
+
+            sumoProcess.ErrorDataReceived += SumoProcess_ErrorDataReceived;
+            sumoProcess.OutputDataReceived += SumoProcess_OutputDataReceived;
+
+            sumoProcess.Start();
+            
+            sumoProcess.BeginErrorReadLine();
+            sumoProcess.BeginOutputReadLine();
+        }
+        catch (Exception e)
+        {
+            print($"Exception {e}");
+            return null;
+        }
+
+        return sumoProcess;
+    }
+
+    private static void SumoProcess_OutputDataReceived(object sender, DataReceivedEventArgs e)
+    {
+        print($"SUMO stderr {e.Data}");
+    }
+
+    private static void SumoProcess_ErrorDataReceived(object sender, DataReceivedEventArgs e)
+    {
+        print($"SUMO stdout: {e.Data}");
+    }
     
     private void GetData()
     {
-        _server = new TcpListener(IPAddress.Any, ConnectionPort);
-        _server.Start();
+        HandleJunctions();
+        HandleEdges();
+        HandleLanes();
+        HandlePolygons();
         
-        while (true)
+        HandleSimulation();
+    }
+
+    private void HandleJunctions()
+    {
+        var junctions = _traci.Junction.GetIdList();
+        List<Junction> junctionsList = new();
+        
+        foreach (string j in junctions.Content)
+        {
+            double x = _traci.Junction.GetPosition(j).Content.X;
+            double z = _traci.Junction.GetPosition(j).Content.Y;
+            
+            Junction junction = new (j, new Vector3((float) x, 0, (float) z));
+            junctionsList.Add(junction);
+        }
+        
+        _junctionManager.SaveJunction(junctionsList);
+    }
+
+    private void HandleEdges()
+    {
+        var edges = _traci.Edge.GetIdList();
+        List<Edge> edgesList = new();
+        
+        foreach (string e in edges.Content)
+        {
+            Edge edge = new (e, _traci.Edge.GetLaneNumber(e).Content);
+            edgesList.Add(edge);
+        }
+        
+        _edgeManager.AddEdges(edgesList);
+    }
+
+    private void HandleLanes()
+    {
+        List<Lane> lanesList = new();
+        var lanes = _traci.Lane.GetIdList();
+        
+        foreach (string l in lanes.Content)
+        {
+            Edge edge = _edgeManager.GetEdge(_traci.Lane.GetEdgeId(l).Content);
+            var vehicles = _traci.Lane.GetAllowed(l).Content;
+            bool isPedestrian = !vehicles.Exists(x => x.Equals("private"));
+            var s = _traci.Lane.GetShape(l).Content.Points;
+            List<Vector2> shape = new();
+            foreach (Position2D pos in s) shape.Add(new Vector2((float) pos.X, (float) pos.Y));
+
+            Lane lane = new (edge, shape, isPedestrian);
+            lanesList.Add(lane);
+        }
+
+        _laneManager.AddLanes(lanesList);
+    }
+
+    private void HandlePolygons()
+    {
+        var polygons = _traci.Polygon.GetIdList();
+        List<Foundation> polygonsList = new();
+
+        foreach (string p in polygons.Content)
+        {
+            List<Vector2> shape = new();
+            foreach(Position2D pos in _traci.Polygon.GetShape(p).Content.Points)
+                shape.Add(new Vector2((float) pos.X, (float) pos.Y));
+            string type = _traci.Polygon.GetType(p).Content;
+
+            Foundation polygon = new Foundation(shape, type);
+            polygonsList.Add(polygon);
+        }
+        
+        _buildingManager.AddBuildings(polygonsList);
+    }
+
+    private void HandleVehicles(List<string> vehicles)
+    {
+        foreach (string v in vehicles)
+        {
+            Position2D pos = _traci.Vehicle.GetPosition(v).Content;
+            Vector3 position = new((float) pos.X, 0, (float) pos.Y);
+            
+            _vehicleManager.AddVehicle(v, position);
+        }
+    }
+
+    private void HandleSimulation()
+    {
+        _serverOn = true;
+        
+        do
         {
             try
             {
-                try
-                {
-                    if (_server.Pending())
-                    {
-                        _client = _server.AcceptTcpClient();
-                    }
+                if (SimulationStopped()) continue;
+                
+                _traci.Control.SimStep();
+                var vehicles = _traci.Vehicle.GetIdList().Content;
+                HandleVehicles(vehicles);
 
-                    Connection();
-                }
-                catch (SocketException e)
-                {
-                    print(e);
-                }
+                _step++;
+                Thread.Sleep(200);
             }
-            catch (ObjectDisposedException)
+            catch (NullReferenceException)
             {
                 break;
             }
-            catch (InvalidOperationException)
-            {
-                break;
-            }
-        }
+        } while (_step < MaxStep);
         
-        _client?.Close();
-    }
-
-    private void Connection()
-    {
-        if (_client == null) return;
-        try
-        {
-            _nwStream = _client.GetStream();
-            byte[] buffer = new byte[_client.ReceiveBufferSize];
-            int bytesRead = _nwStream.Read(buffer, 0, _client.ReceiveBufferSize);
-            string dataReceived = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-
-            string[] format = dataReceived.Split('\n');
-
-            foreach (string s in format)
-            {
-                if (s is null or "") continue;
-
-                string[] data = s.Split(':');
-                string type = data[0], d = data[1];
-
-                switch (type)
-                {
-                    case "Junction":
-                        _junctionManager.SaveJunction(d);
-                        break;
-                    case "Vehicle":
-                        _vehicleManager.AddVehicle(d);
-                        break;
-                    case "Edge":
-                        _edgeManager.AddEdge(d);
-                        break;
-                    case "Polygon":
-                        _buildingManager.AddBuilding(d);
-                        break;
-                    case "Lane":
-                        _laneManager.ManageLanes(d);
-                        break;
-                    case "Step":
-                        ParseSteps(d);
-                        break;
-                }
-            }
-        }
-        catch (Exception)
-        {
-            // Ignore
-        }
-    }
-
-    private void Update()
-    {
-        if (!_simulationStep) return;
-
-        try
-        {
-            byte[] response = Encoding.UTF8.GetBytes("Run\n");
-            _nwStream?.Write(response, 0, response.Length);
-        }
-        catch (Exception)
-        {
-            ClearManagers();
-            _client?.Close();
-            _server?.Stop();
-            Restore();
-        }
+        CloseServer();
     }
 
     public void ManageSimulation(bool stop)
     {
-        if (_nwStream == null) return;
-
         _simulationStep = !stop;
     }
 
-    public void CloseServer()
-    {
-        byte[] response = Encoding.UTF8.GetBytes("Close");
-        _nwStream?.Write(response, 0, response.Length);
-
-        _client?.Close();
-        _server?.Stop();
-        
-    }
+    public bool SimulationStopped() => !_simulationStep;
 
     public void Restore()
     {
-        _client = null;
-        _nwStream = null;
         _step = 0;
         _maxStep = 0;
         _simulationStep = true;
     }
 
-    public bool ServerOn() => _nwStream != null;
+    public bool ServerOn() => _serverOn;
 
     private void ParseSteps(string data)
     {
@@ -190,7 +266,6 @@ public class TrafficSimulator : MonoBehaviour
         if (_step - 1 >= _maxStep)
         {
             ClearManagers();
-            _server.Stop();
             Restore();
             return;
         }
@@ -211,9 +286,14 @@ public class TrafficSimulator : MonoBehaviour
         _hud.ToggleVisibility(false);
     }
 
+    public void CloseServer()
+    {
+        _traci?.Dispose();
+        _serverOn = false;
+    }
+
     private void OnDisable()
     {
-        if (_nwStream != null) CloseServer();
-        else _server?.Stop();
+       CloseServer();
     }
 }

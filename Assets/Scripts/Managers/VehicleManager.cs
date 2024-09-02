@@ -18,18 +18,8 @@ public class VehicleManager : MonoBehaviour
         _queue.Dequeue().Instantiate();
     }
 
-    public void AddVehicle(string info)
+    public void AddVehicle(string id, Vector3 pos)
     {
-        string[] data = info.Split(',');
-        if (data.Length < 3) return;
-        
-        string id = data[0];
-
-        float x = Mathf.Ceil(Utils.ParseFloat(data[1]));
-        float z = Mathf.Ceil(Utils.ParseFloat(data[2]));
-        Vector3 pos = new (x, 0, z);
-        
-        
         if (_vehicles.TryGetValue(id, out Vehicle vehicle))
         {
             vehicle.UpdatePosition(pos);

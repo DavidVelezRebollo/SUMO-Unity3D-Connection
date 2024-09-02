@@ -38,6 +38,7 @@ public class Vehicle
         _vehicleObject.transform.position = _position;
         _vehicleObject.transform.rotation = Quaternion.Slerp(_vehicleObject.transform.rotation, _rotation, Time.deltaTime * 10f);
 
+        if (TrafficSimulator.Instance.SimulationStopped()) return;
         _timer -= Time.deltaTime;
     }
 

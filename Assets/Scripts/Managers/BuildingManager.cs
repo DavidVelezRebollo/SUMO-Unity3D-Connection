@@ -24,7 +24,7 @@ public class BuildingManager : MonoBehaviour
     [SerializeField] private Material AmenityMaterial;
     [SerializeField] private float BuildingHeight;
     
-    private readonly Queue<Foundation> _foundationsToPlace = new();
+    private Queue<Foundation> _foundationsToPlace = new();
 
     private void Update()
     {
@@ -33,13 +33,11 @@ public class BuildingManager : MonoBehaviour
         PlaceFoundation();
     }
 
-    public void AddBuilding(string data)
+    public void AddBuildings(List<Foundation> foundations)
     {
-        string[] splitData = data.Split('*');
-        List<Vector2> vectors = ParseVector2(splitData[0]);
-        string type = splitData[1];
-        
-        _foundationsToPlace.Enqueue(new Foundation(vectors, type));
+        if (foundations.Count <= 0) return;
+
+        _foundationsToPlace = new Queue<Foundation>(foundations);
     }
 
     private void PlaceFoundation()

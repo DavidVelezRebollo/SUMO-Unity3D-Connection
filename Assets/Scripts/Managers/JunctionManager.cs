@@ -37,16 +37,15 @@ public class JunctionManager : MonoBehaviour
         PlaceJunctions();
     }
 
-    public void SaveJunction(string data)
+    public void SaveJunction(List<Junction> junctions)
     {
-        if (string.IsNullOrEmpty(data)) return;
-        
-        string[] p = data.Split(',');
-        Vector3 pos = new (Utils.ParseFloat(p[1]), 0, Utils.ParseFloat(p[2]));
-        Junction junction = new (p[0], pos);
-        
-        _junctionsToPlace.Enqueue(junction);
-        _junctions.Add(junction);
+        if (junctions.Count <= 0) return;
+
+        foreach (Junction junction in junctions)
+        {
+            _junctionsToPlace.Enqueue(junction);
+            _junctions.Add(junction);
+        }
     }
 
     private void PlaceJunctions()

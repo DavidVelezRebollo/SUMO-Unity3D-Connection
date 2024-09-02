@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,8 +13,12 @@ public class SimulationButton : MonoBehaviour
 
     private void Awake()
     {
-        _trafficSimulator = FindObjectOfType<TrafficSimulator>();
         _image = GetComponent<Image>();
+    }
+
+    private void Start()
+    {
+        _trafficSimulator = TrafficSimulator.Instance;
     }
 
     public void OnButtonPress()

@@ -14,8 +14,11 @@ public class StepText : MonoBehaviour
     private void Awake()
     {
         _text = GetComponent<TMP_Text>();
-        _trafficSimulator = FindObjectOfType<TrafficSimulator>();
+    }
 
+    private void Start()
+    {
+        _trafficSimulator = TrafficSimulator.Instance;
         _trafficSimulator.OnStepChange += UpdateText;
     }
 

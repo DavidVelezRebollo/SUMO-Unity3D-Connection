@@ -1320,7 +1320,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d801e48aadb357b42aad022a7deb9709, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  ConnectionPort: 25001
+  ConnectionPort: 1234
+  MaxStep: 1000
 --- !u!4 &362702247
 Transform:
   m_ObjectHideFlags: 0

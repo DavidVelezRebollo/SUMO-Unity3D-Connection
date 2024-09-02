@@ -15,10 +15,13 @@ public class CameraController : MonoBehaviour
 
     private void Awake()
     {
-        _trafficSimulator = FindObjectOfType<TrafficSimulator>(); 
-        
         _transform = transform;
         _transform.position = InitialPosition;
+    }
+
+    private void Start()
+    {
+        _trafficSimulator = TrafficSimulator.Instance;
     }
 
     private void Update()

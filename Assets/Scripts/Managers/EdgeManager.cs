@@ -6,47 +6,32 @@ using UnityEngine;
 public class Edge
 {
     public string ID;
-    public Junction From;
-    public Junction To;
     public int NumLanes;
 
-    public Edge(string id, Junction from, Junction to, int numLanes)
+    public Edge(string id, int numLanes)
     {
         ID = id;
-        From = from;
-        To = to;
         NumLanes = numLanes;
     }
 
     public override string ToString()
     {
-        return $"Edge {ID}: From {From} to {To}. Number of lanes: {NumLanes}";
+        return $"Edge {ID}: Number of lanes: {NumLanes}";
     }
 }
 
 public class EdgeManager : MonoBehaviour
 {
     private JunctionManager _junctions;
-    private readonly List<Edge> _edges = new();
+    private List<Edge> _edges = new();
 
     private void Awake()
     {
         _junctions = GetComponent<JunctionManager>();
     }
 
-    public void AddEdge(string info)
-    {
-        if (string.IsNullOrEmpty(info)) return;
-
-        string[] e = info.Split(',');
-        string id = e[0];
-        int numLanes = int.Parse(e[3]);
-        Junction fromJunction = _junctions.GetJunctionByID(e[1]);
-        Junction toJunction = _junctions.GetJunctionByID(e[2]);
-
-        Edge edge = new(id, fromJunction, toJunction, numLanes);
-        _edges.Add(edge);
-    }
+    public void AddEdges(List<Edge> edges) => _edges = edges;
+    
 
     public Edge GetEdge(string id) => _edges.Find(x => x.ID.Equals(id));
 
