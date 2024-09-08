@@ -86,7 +86,7 @@ public class VehicleList : MonoBehaviour
             Destroy(child.gameObject);
         }
         
-        _vehicles.Clear();
+        _vehicles?.Clear();
     }
 
     private void DeleteText(Vehicle v)

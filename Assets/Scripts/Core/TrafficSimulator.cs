@@ -39,8 +39,17 @@ public class TrafficSimulator : MonoBehaviour
     private float _speed = 1;
     private static bool m_clean;
 
+    private bool _junctionsFinish;
+    private bool _edgesFinish;
+    private bool _lanesFinish;
+    private bool _vehiclesFinish;
+    private bool _buildingsFinish;
+    private bool _loadingFinish;
+
     private const string _HOST = "127.0.0.1";
 
+    public Action OnSimulationStart;
+    public Action OnSimulationFinish;
     public Action<int, int> OnStepChange;
 
     private void Awake()
@@ -62,6 +71,13 @@ public class TrafficSimulator : MonoBehaviour
 
     private void Update()
     {
+        if (_loadingFinish)
+        {
+            OnSimulationStart?.Invoke();
+            _loadingFinish = false;
+            return;
+        }
+        
         if (!m_clean) return;
 
         ClearManagers();
@@ -139,10 +155,15 @@ public class TrafficSimulator : MonoBehaviour
     private void GetData()
     {
         HandleJunctions();
+        while (!_junctionsFinish) { }
         HandleEdges();
+        while (!_edgesFinish) { }
         HandleLanes();
+        while (!_lanesFinish) { }
         HandlePolygons();
-        
+        while (!_buildingsFinish) { }
+
+        _loadingFinish = true;
         HandleSimulation();
     }
 
@@ -161,6 +182,7 @@ public class TrafficSimulator : MonoBehaviour
         }
         
         _junctionManager.SaveJunction(junctionsList);
+        _junctionsFinish = true;
     }
 
     private void HandleEdges()
@@ -175,6 +197,7 @@ public class TrafficSimulator : MonoBehaviour
         }
         
         _edgeManager.AddEdges(edgesList);
+        _edgesFinish = true;
     }
 
     private void HandleLanes()
@@ -196,6 +219,7 @@ public class TrafficSimulator : MonoBehaviour
         }
 
         _laneManager.AddLanes(lanesList);
+        _lanesFinish = true;
     }
 
     private void HandlePolygons()
@@ -215,6 +239,7 @@ public class TrafficSimulator : MonoBehaviour
         }
         
         _buildingManager.AddBuildings(polygonsList);
+        _buildingsFinish = true;
     }
 
     private void HandleVehicles(List<string> vehicles)
@@ -265,8 +290,16 @@ public class TrafficSimulator : MonoBehaviour
 
     public void Restore()
     {
+        OnSimulationFinish?.Invoke();
+        
         _step = 0;
         _simulationStep = true;
+
+        _junctionsFinish = false;
+        _vehiclesFinish = false;
+        _buildingsFinish = false;
+        _edgesFinish = false;
+        _lanesFinish = false;
     }
 
     public bool ServerOn() => _serverOn;
