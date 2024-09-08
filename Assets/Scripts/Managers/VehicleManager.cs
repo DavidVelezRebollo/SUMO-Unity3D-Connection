@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,6 +10,8 @@ public class VehicleManager : MonoBehaviour
 
     private readonly Queue<Vehicle> _queue = new();
 
+    public Action<string, Vehicle> OnVehicleAdded; 
+
     private void Update()
     {
         foreach (Vehicle v in _vehicles.Values) v.Update();
@@ -17,6 +20,8 @@ public class VehicleManager : MonoBehaviour
         
         _queue.Dequeue().Instantiate();
     }
+
+    public Dictionary<string, Vehicle> GetVehicles() => _vehicles;
 
     public void AddVehicle(string id, Vector3 pos)
     {
@@ -28,6 +33,7 @@ public class VehicleManager : MonoBehaviour
 
         Vehicle v = new (id, pos, Vehicles, VehiclesParent);
         _vehicles.TryAdd(id, v);
+        OnVehicleAdded?.Invoke(id, v);
         _queue.Enqueue(v);
     }
 

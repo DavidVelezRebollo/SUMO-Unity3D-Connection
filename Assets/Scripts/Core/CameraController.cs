@@ -34,6 +34,7 @@ public class CameraController : MonoBehaviour
     private void HandleKeyPress()
     {
         HandleMovement();
+        HandleSprint();
         HandleZoom();
         HandleMouse();
         
@@ -51,6 +52,12 @@ public class CameraController : MonoBehaviour
             _transform.position += MovementSpeed * Time.deltaTime * _transform.forward;
         if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
             _transform.position += MovementSpeed * Time.deltaTime * -_transform.forward;
+    }
+
+    private void HandleSprint()
+    {
+        if (Input.GetKeyDown(KeyCode.LeftShift)) MovementSpeed *= 2;
+        if (Input.GetKeyUp(KeyCode.LeftShift)) MovementSpeed /= 2;
     }
 
     private void HandleZoom()

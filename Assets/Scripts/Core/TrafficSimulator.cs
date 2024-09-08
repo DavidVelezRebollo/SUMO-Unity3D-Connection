@@ -34,9 +34,10 @@ public class TrafficSimulator : MonoBehaviour
     private TraCIClient _traci;
 
     private int _step;
-    private int _maxStep;
     private bool _simulationStep = true;
     private bool _serverOn;
+    private float _speed = 1;
+    private static bool m_clean;
 
     private const string _HOST = "127.0.0.1";
 
@@ -57,6 +58,17 @@ public class TrafficSimulator : MonoBehaviour
 
         _initialScreen = FindObjectOfType<InitialScreen>();
         _hud = FindObjectOfType<HUD>();
+    }
+
+    private void Update()
+    {
+        if (!m_clean) return;
+
+        ClearManagers();
+        CloseServer();
+        Restore();
+        
+        m_clean = false;
     }
 
     public IEnumerator StartThread(string sumoGui, string sumoCfgPath)
@@ -121,6 +133,7 @@ public class TrafficSimulator : MonoBehaviour
     private static void SumoProcess_ErrorDataReceived(object sender, DataReceivedEventArgs e)
     {
         print($"SUMO stdout: {e.Data}");
+        m_clean = true;
     }
     
     private void GetData()
@@ -230,7 +243,8 @@ public class TrafficSimulator : MonoBehaviour
                 HandleVehicles(vehicles);
 
                 _step++;
-                Thread.Sleep(200);
+                ParseSteps();
+                Thread.Sleep(Mathf.CeilToInt(100 * _speed));
             }
             catch (NullReferenceException)
             {
@@ -247,30 +261,27 @@ public class TrafficSimulator : MonoBehaviour
     }
 
     public bool SimulationStopped() => !_simulationStep;
+    public void SetSpeed(float speed) => _speed = speed;
 
     public void Restore()
     {
         _step = 0;
-        _maxStep = 0;
         _simulationStep = true;
     }
 
     public bool ServerOn() => _serverOn;
 
-    private void ParseSteps(string data)
+    private void ParseSteps()
     {
-        string[] splitData = data.Split('*');
-        _step = int.Parse(splitData[0]);
-        _maxStep = int.Parse(splitData[1]);
-
-        if (_step - 1 >= _maxStep)
+        if (_step - 1 >= MaxStep)
         {
             ClearManagers();
+            CloseServer();
             Restore();
             return;
         }
         
-        OnStepChange?.Invoke(_step, _maxStep);
+        OnStepChange?.Invoke(_step, MaxStep);
     }
 
     public void ClearManagers()
