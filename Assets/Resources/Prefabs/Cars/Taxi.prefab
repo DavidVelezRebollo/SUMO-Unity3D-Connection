@@ -40,6 +40,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1708527455762694700}
+  - component: {fileID: 8248702350338211802}
   m_Layer: 3
   m_Name: Taxi
   m_TagString: Untagged
@@ -64,6 +65,19 @@ Transform:
   - {fileID: 4881868844769313637}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8248702350338211802
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8697823135152223996}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1682f5986f5f3f4d83e34d924e67655, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  CameraSpot: {fileID: 4881868844769313637}
 --- !u!1001 &2213216659055685620
 PrefabInstance:
   m_ObjectHideFlags: 0

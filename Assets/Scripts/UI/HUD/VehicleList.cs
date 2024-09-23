@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -13,12 +14,11 @@ public class VehicleList : MonoBehaviour
     private VehicleManager _vehicleManager;
     private CanvasGroup _canvas;
     private StopButton _stopButton;
-    private Dictionary<string, Vehicle> _vehicles;
-    private Dictionary<Vehicle, GameObject> _textGameObjects = new();
+    private ConcurrentDictionary<string, Vehicle> _vehicles;
+    private readonly Dictionary<Vehicle, GameObject> _textGameObjects = new();
     private bool _isOpen;
     
     private bool _instantiate;
-    private string _stringToInstantiate;
     private Vehicle _vehicleToInstantiate;
 
     private void Awake()
@@ -41,21 +41,24 @@ public class VehicleList : MonoBehaviour
     {
         _stopButton.OnStop -= OnClose;
         _vehicleManager.OnVehicleAdded -= OnVehicleAdd;
+        TrafficSimulator.Instance.OnSimulationFinish -= Clear;
+    }
+
+    private void Start()
+    {
+        TrafficSimulator.Instance.OnSimulationFinish += Clear;
     }
 
     private void Update()
     {
         if (!_instantiate) return;
         
-        InstantiateText(_stringToInstantiate, _vehicleToInstantiate);
+        InstantiateText(_vehicleToInstantiate);
         _instantiate = false;
     }
 
-    private void OnVehicleAdd(string s, Vehicle v)
+    private void OnVehicleAdd(Vehicle v)
     {
-        if (!_isOpen) return;
-
-        _stringToInstantiate = s;
         _instantiate = true;
         _vehicleToInstantiate = v;
     }
@@ -65,8 +68,6 @@ public class VehicleList : MonoBehaviour
         _canvas.alpha = 1;
         _canvas.blocksRaycasts = true;
         
-        _vehicles = _vehicleManager.GetVehicles();
-        foreach (string s in _vehicles.Keys) InstantiateText(s, _vehicles[s]);
         _isOpen = true;
     }
     
@@ -75,7 +76,7 @@ public class VehicleList : MonoBehaviour
         _canvas.alpha = 0;
         _canvas.blocksRaycasts = false;
         
-        Clear();
+        // Clear();
         _isOpen = false;
     }
 
@@ -91,16 +92,15 @@ public class VehicleList : MonoBehaviour
 
     private void DeleteText(Vehicle v)
     {
-        Destroy(_textGameObjects[v].gameObject);
         v.OnVehicleDestroy -= DeleteText;
+        Destroy(_textGameObjects[v].gameObject);
         _textGameObjects.Remove(v);
     }
 
-    private void InstantiateText(string s, Vehicle v)
+    private void InstantiateText(Vehicle v)
     {
         GameObject go = Instantiate(VehicleTextPrefab, Content);
-        go.GetComponent<TMP_Text>().SetText(s);
-        go.name = s;
+        go.GetComponent<VehicleText>().SetVehicle(v);
         
         _textGameObjects.Add(v, go);
         v.OnVehicleDestroy += DeleteText;

@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CodingConnected.TraCI.NET;
 using CodingConnected.TraCI.NET.Types;
+using Debug = UnityEngine.Debug;
 
 public class TrafficSimulator : MonoBehaviour
 {
@@ -39,10 +40,10 @@ public class TrafficSimulator : MonoBehaviour
     private float _speed = 1;
     private static bool m_clean;
 
+    private bool _error;
     private bool _junctionsFinish;
     private bool _edgesFinish;
     private bool _lanesFinish;
-    private bool _vehiclesFinish;
     private bool _buildingsFinish;
     private bool _loadingFinish;
 
@@ -155,7 +156,14 @@ public class TrafficSimulator : MonoBehaviour
     private void GetData()
     {
         HandleJunctions();
-        while (!_junctionsFinish) { }
+        while (!_junctionsFinish)
+        {
+            if (!_error) continue;
+            
+            m_clean = true;
+            _error = false;
+            return;
+        }
         HandleEdges();
         while (!_edgesFinish) { }
         HandleLanes();
@@ -169,20 +177,29 @@ public class TrafficSimulator : MonoBehaviour
 
     private void HandleJunctions()
     {
-        var junctions = _traci.Junction.GetIdList();
-        List<Junction> junctionsList = new();
-        
-        foreach (string j in junctions.Content)
+        try
         {
-            double x = _traci.Junction.GetPosition(j).Content.X;
-            double z = _traci.Junction.GetPosition(j).Content.Y;
-            
-            Junction junction = new (j, new Vector3((float) x, 0, (float) z));
-            junctionsList.Add(junction);
+            var junctions = _traci.Junction.GetIdList();
+            List<Junction> junctionsList = new();
+
+            foreach (string j in junctions.Content)
+            {
+                double x = _traci.Junction.GetPosition(j).Content.X;
+                double z = _traci.Junction.GetPosition(j).Content.Y;
+
+                Junction junction = new(j, new Vector3((float)x, 0, (float)z));
+                junctionsList.Add(junction);
+            }
+
+            _junctionManager.SaveJunction(junctionsList);
+            _junctionsFinish = true;
         }
-        
-        _junctionManager.SaveJunction(junctionsList);
-        _junctionsFinish = true;
+        catch (Exception e)
+        {
+            _error = true;
+            WarningScreen.Instance.OnError("Map loading failed. Try again.");
+            Debug.LogError(e);
+        }
     }
 
     private void HandleEdges()
@@ -249,7 +266,7 @@ public class TrafficSimulator : MonoBehaviour
             Position2D pos = _traci.Vehicle.GetPosition(v).Content;
             Vector3 position = new((float) pos.X, 0, (float) pos.Y);
             
-            _vehicleManager.AddVehicle(v, position);
+            _vehicleManager.OnVehicleReceive(v, position);
         }
     }
 
@@ -269,15 +286,15 @@ public class TrafficSimulator : MonoBehaviour
 
                 _step++;
                 ParseSteps();
-                Thread.Sleep(Mathf.CeilToInt(100 * _speed));
+                Thread.Sleep(Mathf.CeilToInt(200 * _speed));
             }
             catch (NullReferenceException)
             {
                 break;
             }
         } while (_step < MaxStep);
-        
-        CloseServer();
+
+        m_clean = true;
     }
 
     public void ManageSimulation(bool stop)
@@ -296,11 +313,12 @@ public class TrafficSimulator : MonoBehaviour
         _simulationStep = true;
 
         _junctionsFinish = false;
-        _vehiclesFinish = false;
         _buildingsFinish = false;
         _edgesFinish = false;
         _lanesFinish = false;
     }
+
+    public void SetMaxSteps(int steps) => MaxStep = steps; 
 
     public bool ServerOn() => _serverOn;
 

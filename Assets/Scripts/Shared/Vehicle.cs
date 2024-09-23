@@ -1,70 +1,59 @@
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
-public class Vehicle
+public class Vehicle : MonoBehaviour
 {
-    private readonly string _id;
-    private readonly GameObject[] _prefabs;
-    private readonly Transform _parent;
+    public string ID { get; private set; }
+    [SerializeField] private Transform CameraSpot;
 
-    private GameObject _vehicleObject;
-    private Transform _cameraSpot;
-    private Vector3 _position;
+    private Transform _transform;
     private Quaternion _rotation;
 
-    private const float _DESTROY_TIME = 0.5f;
+    private const float _DESTROY_TIME = 1f;
+    private Vector3 _position;
     private float _timer;
     private bool _destroy;
 
     public Action<Vehicle> OnVehicleDestroy;
 
-    public Vehicle(string id, Vector3 position, GameObject[] prefabs, Transform parent)
+    private void OnEnable()
     {
-        _id = id;
-        _position = position;
-        _prefabs = prefabs;
-        _parent = parent;
-
         _timer = _DESTROY_TIME;
+    }
+
+    public void Initialize(string id, Vector3 pos)
+    {
+        ID = id;
+        _position = pos;
+        gameObject.name = id;
     }
 
     public void Update()
     {
-        if (!_vehicleObject) return;
-        if (_timer <= 0) _destroy = true;
-        if (_destroy)
+        if (_timer <= 0)
         {
-            Object.Destroy(_vehicleObject.gameObject);
             OnVehicleDestroy?.Invoke(this);
-            _vehicleObject = null;
+            Destroy(gameObject);
             return;
         }
         
-        _vehicleObject.transform.position = _position;
-        _vehicleObject.transform.rotation = Quaternion.Slerp(_vehicleObject.transform.rotation, _rotation, 1);
+        transform.position = _position;
+        transform.rotation = Quaternion.Slerp(transform.rotation, _rotation, 1);
 
         if (TrafficSimulator.Instance.SimulationStopped()) return;
         _timer -= Time.deltaTime;
     }
 
-    public void Instantiate()
-    {
-        if (_vehicleObject) return;
-        
-        _vehicleObject = Object.Instantiate(_prefabs[Random.Range(0, _prefabs.Length)], _position, Quaternion.identity, _parent);
-        _vehicleObject.name = _id;
-        _cameraSpot = _vehicleObject.transform.GetChild(1);
-    }
-
     public void UpdatePosition(Vector3 position)
     {
-        if (_vehicleObject == null) return;
-
         Vector3 direction = position - _position;
         _position = position;
-        _rotation = Quaternion.LookRotation(direction);
+        if (direction != Vector3.zero) _rotation = Quaternion.LookRotation(direction);
         _timer = _DESTROY_TIME;
     }
+
+    public Transform GetCameraSpot() => CameraSpot;
 }

@@ -11,6 +11,7 @@ public class CameraController : MonoBehaviour
     private TrafficSimulator _trafficSimulator;
     private Transform _transform;
     private bool _looking;
+    private bool _lockCamera;
     private float _rotX;
 
     private void Awake()
@@ -31,11 +32,16 @@ public class CameraController : MonoBehaviour
         HandleKeyPress();
     }
 
+    public void LockCamera(bool locked) => _lockCamera = locked;
+
     private void HandleKeyPress()
     {
-        HandleMovement();
-        HandleSprint();
-        HandleZoom();
+        if (!_lockCamera)
+        {
+            HandleMovement();
+            HandleSprint();
+            HandleZoom();
+        }
         HandleMouse();
         
         if (Input.GetKeyDown(KeyCode.Mouse1)) ToggleLooking(true);
@@ -89,7 +95,9 @@ public class CameraController : MonoBehaviour
 
     public void ResetCamera()
     {
+        _transform.SetParent(null);
         _transform.position = InitialPosition;
         _transform.localEulerAngles = Vector3.zero;
+        _lockCamera = false;
     }
 }

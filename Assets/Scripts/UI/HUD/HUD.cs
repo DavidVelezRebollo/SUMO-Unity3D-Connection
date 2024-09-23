@@ -1,8 +1,12 @@
 using System;
+using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class HUD : MonoBehaviour
 {
+    [SerializeField] private VerticalLayoutGroup ButtonsVerticalLayout;
+    
     private CanvasGroup _canvasGroup;
 
     private void Awake()
@@ -13,8 +17,19 @@ public class HUD : MonoBehaviour
 
     public void ToggleVisibility(bool isVisible)
     {
-        Canvas.ForceUpdateCanvases();
+        if (isVisible) StartCoroutine(UpdateLayout());
+        
         _canvasGroup.alpha = isVisible ? 1 : 0;
         _canvasGroup.blocksRaycasts = isVisible;
+    }
+
+    private IEnumerator UpdateLayout()
+    {
+        yield return new WaitForEndOfFrame();
+
+        ButtonsVerticalLayout.enabled = false;
+        ButtonsVerticalLayout.CalculateLayoutInputVertical();
+        LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform) ButtonsVerticalLayout.transform);
+        ButtonsVerticalLayout.enabled = true;
     }
 }

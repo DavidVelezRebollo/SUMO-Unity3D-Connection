@@ -36,7 +36,7 @@ public class LoadButton : MonoBehaviour
     {
         if (string.IsNullOrEmpty(Utils.GetExecutableRoute()))
         {
-            _warningScreen.ToggleVisibility(true);
+            WarningScreen.Instance.OnError("Missing SUMO-GUI executable file");
             yield break;
         }
         

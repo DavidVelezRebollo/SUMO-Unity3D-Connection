@@ -28,6 +28,7 @@ public class BuildingManager : MonoBehaviour
     [SerializeField] private float BuildingHeight;
     
     private Queue<Foundation> _foundationsToPlace = new();
+    private bool _showCeilings = true;
 
     private void Update()
     {
@@ -35,6 +36,8 @@ public class BuildingManager : MonoBehaviour
         
         PlaceFoundation();
     }
+
+    public void ChangeCeilingState(bool state) => _showCeilings = state;
 
     public void AddBuildings(List<Foundation> foundations)
     {
@@ -53,7 +56,7 @@ public class BuildingManager : MonoBehaviour
             if (foundation.Type.Contains("building"))
             {
                 GenerateBuilding(points);
-                GeneratePlane(points, false);
+                if (_showCeilings) GeneratePlane(points, false);
                 GeneratePlane(points, true);
             }
             else if (foundation.Type.Contains("park")) GeneratePark(points);
@@ -124,9 +127,9 @@ public class BuildingManager : MonoBehaviour
         List<int> triangles = new();
         for (int i = 0; i < points.Count; i++)
         {
+            triangles.Add(0);
             triangles.Add(i);
             triangles.Add((i + 1) % points.Count);
-            triangles.Add(0);
         }
 
         // UVs
