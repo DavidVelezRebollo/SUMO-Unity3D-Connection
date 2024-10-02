@@ -198,7 +198,6 @@ public class TrafficSimulator : MonoBehaviour
         {
             _error = true;
             WarningScreen.Instance.OnError("Map loading failed. Try again.");
-            Debug.LogError(e);
         }
     }
 

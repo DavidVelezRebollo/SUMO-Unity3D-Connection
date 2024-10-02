@@ -10,19 +10,29 @@ public class VehicleText : MonoBehaviour, IPointerDownHandler
     private TMP_Text _text;
     private Vehicle _vehicle;
     private CameraController _camera;
+    private ExitVehicleButton _exitButton;
     private bool _cameraOnVehicle;
 
     private void OnEnable()
     {
         _text = GetComponent<TMP_Text>();
         _camera = FindObjectOfType<CameraController>();
+        _exitButton = FindObjectOfType<ExitVehicleButton>();
+
+        _exitButton.OnButtonPress += ResetCamera;
+    }
+
+    private void OnDisable()
+    {
+        _vehicle.OnVehicleDestroy -= Aux;
+        _exitButton.OnButtonPress -= ResetCamera;
     }
 
     public void SetVehicle(Vehicle vehicle)
     {
         _vehicle = vehicle;
         _text.text = _vehicle.ID;
-        _vehicle.OnVehicleDestroy += ResetCamera;
+        _vehicle.OnVehicleDestroy += Aux;
     }
     
     public void OnPointerDown(PointerEventData eventData)
@@ -32,11 +42,15 @@ public class VehicleText : MonoBehaviour, IPointerDownHandler
         _camera.transform.localRotation = Quaternion.identity;
         _camera.LockCamera(true);
         _cameraOnVehicle = true;
+        _exitButton.Show();
     }
 
-    private void ResetCamera(Vehicle vehicle)
+    private void Aux(Vehicle v) => ResetCamera();
+
+    private void ResetCamera()
     {
         if (!_cameraOnVehicle) return;
         _camera.ResetCamera();
+        _exitButton.Hide();
     }
 }

@@ -108,10 +108,18 @@ public class BuildingManager : MonoBehaviour
         
     }
 
+    private readonly List<List<Vector3>> _generatedRoofs = new();
+    private readonly List<List<Vector3>> _generatedFloors = new();
+
     private void GeneratePlane(List<Vector3> points, bool isFloor)
     {
+        float diff = 1;
+        
+        var collidingRoofs = PolygonIntersecting(points, isFloor ? _generatedFloors : _generatedRoofs);
+        if (collidingRoofs.Count > 0) diff = isFloor ? -1 : 2;
+        
         GameObject roof = new GameObject("Roof");
-        roof.transform.position = new Vector3(0, isFloor ? 0 : BuildingHeight - 1, 0);
+        roof.transform.position = new Vector3(0, isFloor ? 0 + diff : BuildingHeight - diff, 0);
         roof.transform.SetParent(Parent);
         
         MeshFilter meshFilter = roof.AddComponent<MeshFilter>();
@@ -145,12 +153,18 @@ public class BuildingManager : MonoBehaviour
         mesh.SetUVs(0, uvs);
         mesh.Optimize();
         mesh.RecalculateNormals();
+        
+        if (!isFloor) _generatedRoofs.Add(points);
     }
+
+    private readonly List<List<Vector3>> _generatedParks = new();
 
     private void GeneratePark(List<Vector3> points)
     {
+        float diff = PolygonIntersecting(points, _generatedParks).Count <= 0 ? -0.5f : -0.1f;
+        
         GameObject park = new ("Park", typeof(MeshRenderer), typeof(MeshFilter));
-        park.transform.position = new Vector3(0, -0.1f, 0);
+        park.transform.position = new Vector3(0, diff, 0);
         park.transform.SetParent(Parent);
         
         MeshFilter meshFilter = park.GetComponent<MeshFilter>();
@@ -184,6 +198,43 @@ public class BuildingManager : MonoBehaviour
         mesh.SetUVs(0, uvs);
         mesh.Optimize();
         mesh.RecalculateNormals();
+        
+        _generatedParks.Add(points);
+    }
+    
+    // Polygon intersection verification
+    private List<List<Vector3>> PolygonIntersecting(List<Vector3> points, List<List<Vector3>> generatedPolygons)
+    {
+        List<List<Vector3>> enclosedPolygons = new();
+        
+        foreach (var polygon in generatedPolygons)
+        {
+            bool enclosed = polygon.Any(v => IsPointInPolygon(v, points));
+            
+            if (enclosed) enclosedPolygons.Add(polygon);
+        }
+
+        return enclosedPolygons;
+    }
+
+    private bool IsPointInPolygon(Vector3 point, List<Vector3> polygon)
+    {
+        int intersections = 0;
+        for (int i = 0; i < polygon.Count; i++)
+        {
+            Vector3 vx1 = polygon[i];
+            Vector3 vx2 = polygon[(i + 1) % polygon.Count];
+
+            if (RayIntersectsSegment(point, vx1, vx2)) intersections++;
+        }
+
+        return intersections % 2 != 0;
+    }
+
+    private bool RayIntersectsSegment(Vector3 point, Vector3 vertex1, Vector3 vertex2)
+    {
+        return vertex1.z > point.z != vertex2.z > point.z &&
+               point.x < (vertex2.x - vertex1.x) * (point.z - vertex1.z) / (vertex2.z - vertex1.z) + vertex1.z;
     }
 
     public void ClearBuildings()

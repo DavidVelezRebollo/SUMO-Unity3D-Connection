@@ -8,15 +8,9 @@ public class DraggableZone : MonoBehaviour, IPointerDownHandler
 {
     [SerializeField] private RectTransform TransformToMove;
 
-    private RectTransform _draggableRect;
-    private Camera _mainCamera;
+    private Vector3 _initialMousePos;
+    private Vector3 _initialWindowPos;
     private bool _clicking;
-
-    private void Awake()
-    {
-        _mainCamera = Camera.main;
-        _draggableRect = GetComponent<RectTransform>();
-    }
 
     private void Update()
     {
@@ -27,15 +21,16 @@ public class DraggableZone : MonoBehaviour, IPointerDownHandler
             _clicking = false;
             return;
         }
-        
-        Vector3 pos = Input.mousePosition;
-        // pos.x -= _draggableRect.rect.width / 2;
-        // pos.y += _draggableRect.rect.height / 2;
-        TransformToMove.position = pos;
+
+        Vector3 currentPos = Input.mousePosition;
+        Vector3 delta = currentPos - _initialMousePos;
+        TransformToMove.position = _initialWindowPos + delta;
     }
 
     public void OnPointerDown(PointerEventData eventData)
     {
         _clicking = true;
+        _initialMousePos = Input.mousePosition;
+        _initialWindowPos = TransformToMove.position;
     }
 }
