@@ -12,16 +12,16 @@ public class Vehicle : MonoBehaviour
     private Transform _transform;
     private Quaternion _rotation;
 
-    private const float _DESTROY_TIME = 1f;
+    private const float _DESTROY_TIME = 3f;
     private Vector3 _position;
-    private float _timer;
+    private float _timeDelta;
     private bool _destroy;
 
     public Action<Vehicle> OnVehicleDestroy;
 
     private void OnEnable()
     {
-        _timer = _DESTROY_TIME;
+        _timeDelta = _DESTROY_TIME;
     }
 
     public void Initialize(string id, Vector3 pos)
@@ -33,7 +33,7 @@ public class Vehicle : MonoBehaviour
 
     public void Update()
     {
-        if (_timer <= 0)
+        if (_timeDelta <= 0)
         {
             OnVehicleDestroy?.Invoke(this);
             Destroy(gameObject);
@@ -44,15 +44,16 @@ public class Vehicle : MonoBehaviour
         transform.rotation = Quaternion.Slerp(transform.rotation, _rotation, 1);
 
         if (TrafficSimulator.Instance.SimulationStopped()) return;
-        _timer -= Time.deltaTime;
+
+        _timeDelta -= Time.deltaTime;
     }
 
     public void UpdatePosition(Vector3 position)
     {
         Vector3 direction = position - _position;
         _position = position;
-        if (direction != Vector3.zero) _rotation = Quaternion.LookRotation(direction);
-        _timer = _DESTROY_TIME;
+        if (direction != Vector3.zero) _rotation = Quaternion.LookRotation(direction); 
+        _timeDelta = _DESTROY_TIME;
     }
 
     public Transform GetCameraSpot() => CameraSpot;

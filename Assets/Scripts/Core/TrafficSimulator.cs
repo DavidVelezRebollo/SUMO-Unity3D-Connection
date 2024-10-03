@@ -47,6 +47,15 @@ public class TrafficSimulator : MonoBehaviour
     private bool _buildingsFinish;
     private bool _loadingFinish;
 
+    private int _junctionsNum;
+    private int _totalJunctions;
+    private int _edgesNum;
+    private int _totalEdges;
+    private int _lanesNum;
+    private int _totalLanes;
+    private int _polygonsNum;
+    private int _totalPolygons;
+
     private const string _HOST = "127.0.0.1";
 
     public Action OnSimulationStart;
@@ -79,13 +88,16 @@ public class TrafficSimulator : MonoBehaviour
             return;
         }
         
-        if (!m_clean) return;
+        if (!m_clean || !_error) return;
+
+        if (_error) WarningScreen.Instance.OnError("Map loading failed. Try again.");
 
         ClearManagers();
         CloseServer();
         Restore();
         
         m_clean = false;
+        _error = false;
     }
 
     public IEnumerator StartThread(string sumoGui, string sumoCfgPath)
@@ -156,20 +168,9 @@ public class TrafficSimulator : MonoBehaviour
     private void GetData()
     {
         HandleJunctions();
-        while (!_junctionsFinish)
-        {
-            if (!_error) continue;
-            
-            m_clean = true;
-            _error = false;
-            return;
-        }
         HandleEdges();
-        while (!_edgesFinish) { }
         HandleLanes();
-        while (!_lanesFinish) { }
         HandlePolygons();
-        while (!_buildingsFinish) { }
 
         _loadingFinish = true;
         HandleSimulation();
@@ -181,6 +182,7 @@ public class TrafficSimulator : MonoBehaviour
         {
             var junctions = _traci.Junction.GetIdList();
             List<Junction> junctionsList = new();
+            _totalJunctions = junctions.Content.Count;
 
             foreach (string j in junctions.Content)
             {
@@ -189,6 +191,8 @@ public class TrafficSimulator : MonoBehaviour
 
                 Junction junction = new(j, new Vector3((float)x, 0, (float)z));
                 junctionsList.Add(junction);
+                _junctionsNum++;
+                LoadingProgressText.SetText($"Loading Junctions... ({_junctionsNum} / {_totalJunctions})");
             }
 
             _junctionManager.SaveJunction(junctionsList);
@@ -197,65 +201,98 @@ public class TrafficSimulator : MonoBehaviour
         catch (Exception e)
         {
             _error = true;
-            WarningScreen.Instance.OnError("Map loading failed. Try again.");
+            print(e);
         }
     }
 
     private void HandleEdges()
     {
-        var edges = _traci.Edge.GetIdList();
-        List<Edge> edgesList = new();
-        
-        foreach (string e in edges.Content)
+        try
         {
-            Edge edge = new (e, _traci.Edge.GetLaneNumber(e).Content);
-            edgesList.Add(edge);
+            var edges = _traci.Edge.GetIdList();
+            List<Edge> edgesList = new();
+            _totalEdges = edges.Content.Count;
+
+            foreach (string e in edges.Content)
+            {
+                Edge edge = new(e, _traci.Edge.GetLaneNumber(e).Content);
+                edgesList.Add(edge);
+                _edgesNum++;
+                LoadingProgressText.SetText($"Loading Edges... ({_edgesNum} / {_totalEdges})");
+            }
+
+            _edgeManager.AddEdges(edgesList);
+            _edgesFinish = true;
         }
-        
-        _edgeManager.AddEdges(edgesList);
-        _edgesFinish = true;
+        catch (Exception e)
+        {
+            _error = true;
+            print(e);
+        }
     }
 
     private void HandleLanes()
     {
-        List<Lane> lanesList = new();
-        var lanes = _traci.Lane.GetIdList();
-        
-        foreach (string l in lanes.Content)
+        try
         {
-            Edge edge = _edgeManager.GetEdge(_traci.Lane.GetEdgeId(l).Content);
-            var vehicles = _traci.Lane.GetAllowed(l).Content;
-            bool isPedestrian = !vehicles.Exists(x => x.Equals("private"));
-            var s = _traci.Lane.GetShape(l).Content.Points;
-            List<Vector2> shape = new();
-            foreach (Position2D pos in s) shape.Add(new Vector2((float) pos.X, (float) pos.Y));
+            List<Lane> lanesList = new();
+            var lanes = _traci.Lane.GetIdList();
+            _totalLanes = lanes.Content.Count;
 
-            Lane lane = new (edge, shape, isPedestrian);
-            lanesList.Add(lane);
+            foreach (string l in lanes.Content)
+            {
+                Edge edge = _edgeManager.GetEdge(_traci.Lane.GetEdgeId(l).Content);
+                var vehicles = _traci.Lane.GetAllowed(l).Content;
+                bool isPedestrian = !vehicles.Exists(x => x.Equals("private"));
+                var s = _traci.Lane.GetShape(l).Content.Points;
+                List<Vector2> shape = new();
+                foreach (Position2D pos in s) shape.Add(new Vector2((float)pos.X, (float)pos.Y));
+
+                Lane lane = new(edge, shape, isPedestrian);
+                lanesList.Add(lane);
+                _lanesNum++;
+                LoadingProgressText.SetText($"Loading Lanes... ({_lanesNum} / {_totalLanes})");
+            }
+
+            _laneManager.AddLanes(lanesList);
+            _lanesFinish = true;
         }
-
-        _laneManager.AddLanes(lanesList);
-        _lanesFinish = true;
+        catch (Exception e)
+        {
+            _error = true;
+            print(e);
+        }
     }
 
     private void HandlePolygons()
     {
-        var polygons = _traci.Polygon.GetIdList();
-        List<Foundation> polygonsList = new();
-
-        foreach (string p in polygons.Content)
+        try
         {
-            List<Vector2> shape = new();
-            foreach(Position2D pos in _traci.Polygon.GetShape(p).Content.Points)
-                shape.Add(new Vector2((float) pos.X, (float) pos.Y));
-            string type = _traci.Polygon.GetType(p).Content;
+            var polygons = _traci.Polygon.GetIdList();
+            List<Foundation> polygonsList = new();
+            _totalPolygons = polygons.Content.Count;
 
-            Foundation polygon = new Foundation(shape, type);
-            polygonsList.Add(polygon);
+            foreach (string p in polygons.Content)
+            {
+                List<Vector2> shape = new();
+                foreach (Position2D pos in _traci.Polygon.GetShape(p).Content.Points)
+                    shape.Add(new Vector2((float)pos.X, (float)pos.Y));
+                string type = _traci.Polygon.GetType(p).Content;
+
+                Foundation polygon = new Foundation(shape, type);
+                polygonsList.Add(polygon);
+                _polygonsNum++;
+                LoadingProgressText.SetText($"Loading Polygons... ({_polygonsNum} / {_totalPolygons})");
+            }
+
+            _buildingManager.AddBuildings(polygonsList);
+            _buildingsFinish = true;
         }
-        
-        _buildingManager.AddBuildings(polygonsList);
-        _buildingsFinish = true;
+        catch (Exception e)
+        {
+            _error = true;
+            print(e);
+        }
     }
 
     private void HandleVehicles(List<string> vehicles)
@@ -315,6 +352,11 @@ public class TrafficSimulator : MonoBehaviour
         _buildingsFinish = false;
         _edgesFinish = false;
         _lanesFinish = false;
+
+        _junctionsNum = 0;
+        _edgesNum = 0;
+        _lanesNum = 0;
+        _polygonsNum = 0;
     }
 
     public void SetMaxSteps(int steps) => MaxStep = steps; 
