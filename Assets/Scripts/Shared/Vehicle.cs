@@ -11,6 +11,7 @@ public class Vehicle : MonoBehaviour
 
     private Transform _transform;
     private Quaternion _rotation;
+    private CameraController _camera;
 
     private const float _DESTROY_TIME = 3f;
     private Vector3 _position;
@@ -22,6 +23,7 @@ public class Vehicle : MonoBehaviour
     private void OnEnable()
     {
         _timeDelta = _DESTROY_TIME;
+        _camera = CameraController.Instance;
     }
 
     public void Initialize(string id, Vector3 pos)
@@ -57,4 +59,9 @@ public class Vehicle : MonoBehaviour
     }
 
     public Transform GetCameraSpot() => CameraSpot;
+
+    private void OnMouseDown()
+    {
+        _camera.SetOnVehicle(GetCameraSpot());
+    }
 }

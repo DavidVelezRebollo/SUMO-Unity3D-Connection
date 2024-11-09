@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class CameraController : MonoBehaviour
 {
+    public static CameraController Instance;
+    
     [SerializeField] private Vector3 InitialPosition;
     [SerializeField] private float MovementSpeed = 10f;
     [SerializeField] private float LookSensitivity = 3f;
@@ -10,12 +12,16 @@ public class CameraController : MonoBehaviour
 
     private TrafficSimulator _trafficSimulator;
     private Transform _transform;
+    private ExitVehicleButton _exitButton;
     private bool _looking;
     private bool _lockCamera;
+    private bool _cameraOnVehicle;
     private float _rotX;
 
     private void Awake()
     {
+        if (!Instance) Instance = this;
+        
         _transform = transform;
         _transform.position = InitialPosition;
     }
@@ -23,6 +29,7 @@ public class CameraController : MonoBehaviour
     private void Start()
     {
         _trafficSimulator = TrafficSimulator.Instance;
+        _exitButton = FindObjectOfType<ExitVehicleButton>();
     }
 
     private void Update()
@@ -33,6 +40,8 @@ public class CameraController : MonoBehaviour
     }
 
     public void LockCamera(bool locked) => _lockCamera = locked;
+
+    public bool IsOnVehicle() => _cameraOnVehicle;
 
     private void HandleKeyPress()
     {
@@ -99,5 +108,17 @@ public class CameraController : MonoBehaviour
         _transform.position = InitialPosition;
         _transform.localEulerAngles = Vector3.zero;
         _lockCamera = false;
+        _cameraOnVehicle = false;
+        _exitButton.Hide();
+    }
+
+    public void SetOnVehicle(Transform cameraSpot)
+    {
+        transform.parent = cameraSpot;
+        transform.localPosition = Vector3.zero;
+        transform.localRotation = Quaternion.identity;
+        _cameraOnVehicle = true;
+        LockCamera(true);
+        _exitButton.Show();
     }
 }

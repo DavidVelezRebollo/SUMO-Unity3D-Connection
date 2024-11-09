@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1283893098573882643}
   - component: {fileID: -6307439464590615456}
+  - component: {fileID: -6446323274349008429}
   m_Layer: 3
   m_Name: SUV
   m_TagString: Untagged
@@ -47,6 +48,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   CameraSpot: {fileID: 1967420467721872327}
+--- !u!65 &-6446323274349008429
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2419500192258825109}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1.1075988, z: 3.7050643}
+  m_Center: {x: 0, y: 0.52128994, z: 0.035939693}
 --- !u!1 &8703934353927076345
 GameObject:
   m_ObjectHideFlags: 0

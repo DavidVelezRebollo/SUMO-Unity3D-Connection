@@ -6,12 +6,18 @@ using UnityEngine;
 public class ExitVehicleButton : MonoBehaviour
 {
     private CanvasGroup _canvas;
-    public Action OnButtonPress;
+
+    private CameraController _camera;
 
     private void Awake()
     {
         _canvas = GetComponent<CanvasGroup>();
         Hide();
+    }
+
+    private void Start()
+    {
+        _camera = CameraController.Instance;
     }
 
     public void Show()
@@ -28,6 +34,11 @@ public class ExitVehicleButton : MonoBehaviour
     
     public void OnButton()
     {
-        OnButtonPress?.Invoke();
+        ResetButton();
+    }
+
+    public void ResetButton()
+    {
+        _camera.ResetCamera();
     }
 }

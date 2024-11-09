@@ -73,10 +73,14 @@ public class TrafficSimulator : MonoBehaviour
         _edgeManager = GetComponent<EdgeManager>();
         _buildingManager = GetComponent<BuildingManager>();
         _laneManager = GetComponent<LaneManager>();
-        _cameraController = FindObjectOfType<CameraController>();
 
         _initialScreen = FindObjectOfType<InitialScreen>();
         _hud = FindObjectOfType<HUD>();
+    }
+
+    private void Start()
+    {
+        _cameraController = CameraController.Instance;
     }
 
     private void Update()

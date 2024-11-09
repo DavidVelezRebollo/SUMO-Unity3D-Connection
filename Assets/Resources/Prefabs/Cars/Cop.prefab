@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5796636615637023922}
   - component: {fileID: 4836039102124527308}
+  - component: {fileID: 2728695086491783551}
   m_Layer: 3
   m_Name: Cop
   m_TagString: Untagged
@@ -47,6 +48,27 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   CameraSpot: {fileID: 7867085504905962447}
+--- !u!65 &2728695086491783551
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1369141565456304787}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1.1075988, z: 3.7050643}
+  m_Center: {x: 0, y: 0.52128994, z: 0.035939693}
 --- !u!1 &5147481831901337403
 GameObject:
   m_ObjectHideFlags: 0
